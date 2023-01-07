@@ -1,6 +1,24 @@
 const User = require("../models/User");
+const jwt = require("jsonwebtoken");
+const bcrypt = require("bcryptjs");
 
-const getUser = async (req, res, next) => {
+const getUsers = async (req, res) => {
+  try {
+    const users = await User.find();
+
+    res.status(200).json({
+      status: 200,
+      data: users,
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: 500,
+      message: "internal server error",
+    });
+  }
+};
+
+const getUser = async (req, res) => {
   const { id } = req.params;
 
   try {
@@ -25,24 +43,40 @@ const getUser = async (req, res, next) => {
   }
 };
 
-const register = async (req, res, next) => {
-  const data = req.body;
+const register = async (req, res) => {
+  const { password, ...data } = req.body;
+
+  const salt = await bcrypt.genSalt(10);
+  const encryptedPassword = await bcrypt.hash(password, salt);
 
   try {
-    const newUser = new User(data);
-    await newUser.save();
+    const user = new User({
+      ...data,
+      password: encryptedPassword,
+    });
+    await user.save();
+
+    // const token = jwt.sign({ uid: user._id }, process.env.JWT_SECRET, {
+    //   expiresIn: "4h",
+    // });
+
+    // res.status(201).json({
+    //   status: 201,
+    //   message: "user created",
+    //   data: { user, token },
+    // });
 
     res.status(201).json({
       status: 201,
       message: "user created",
-      data: newUser,
+      data: user,
     });
   } catch (error) {
     if (error.code && error.code === 11000) {
       const field = Object.keys(error.keyValue);
       return res.status(409).json({
         status: 409,
-        message: `${field} already in use`,
+        message: `this ${field} is already in use`,
       });
     }
 
@@ -53,13 +87,59 @@ const register = async (req, res, next) => {
   }
 };
 
-const login = async (req, res, next) => {};
+const login = async (req, res) => {
+  const { username, email, password } = req.body;
+  const condition = username ? { username } : { email };
 
-const updateUser = async (req, res, next) => {
-  const { id } = req.params;
-  const newData = req.body;
   try {
-    const user = await User.findByIdAndUpdate(id, newData);
+    const user = await User.findOne(condition);
+
+    if (!user) {
+      return res.status(404).json({
+        status: 404,
+        message: "user not found",
+      });
+    }
+    const isMatch = await bcrypt.compare(password, user.password);
+
+    if (!isMatch) {
+      return res.status(401).json({
+        status: 401,
+        message: "incorrect password",
+      });
+    }
+
+    const token = jwt.sign({ uid: user._id }, process.env.JWT_SECRET, {
+      expiresIn: "4h",
+    });
+
+    await User.findByIdAndUpdate(user._id, { token });
+
+    res.status(200).json({
+      status: 200,
+      message: "signed in",
+      data: { user, token },
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: 500,
+      message: "internal server error",
+    });
+  }
+};
+
+const updateUser = async (req, res) => {
+  const { id } = req.params;
+  const { password, ...data } = req.body;
+
+  const salt = await bcrypt.genSalt(10);
+  const encryptedPassword = await bcrypt.hash(password, salt);
+
+  try {
+    const user = await User.findByIdAndUpdate(id, {
+      ...data,
+      password: encryptedPassword,
+    });
 
     if (!user) {
       return res.status(404).json({
@@ -77,7 +157,7 @@ const updateUser = async (req, res, next) => {
       const field = Object.keys(error.keyValue);
       return res.status(409).json({
         status: 409,
-        message: `${field} already in use`,
+        message: `this ${field} is already in use`,
       });
     }
 
@@ -88,7 +168,7 @@ const updateUser = async (req, res, next) => {
   }
 };
 
-const deleteUser = async (req, res, next) => {
+const deleteUser = async (req, res) => {
   const { id } = req.params;
 
   try {
@@ -114,6 +194,7 @@ const deleteUser = async (req, res, next) => {
 };
 
 module.exports = {
+  getUsers,
   getUser,
   register,
   login,

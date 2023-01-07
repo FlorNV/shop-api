@@ -1,6 +1,9 @@
 const express = require("express");
 const router = express.Router();
+const { verifyToken } = require("../middlewares/verifyToken");
+const { verifyAuthorization } = require("../middlewares/verifyAuthorization");
 const {
+  getUsers,
   getUser,
   register,
   login,
@@ -8,10 +11,11 @@ const {
   deleteUser,
 } = require("../controllers/user.controller");
 
-router.get("/:id", getUser);
+router.get("/:id", verifyToken, verifyAuthorization, getUser);
+router.get("/", getUsers);
 router.post("/register", register);
 router.post("/login", login);
-router.put("/:id", updateUser);
-router.delete("/:id", deleteUser);
+router.put("/:id", verifyToken, verifyAuthorization, updateUser);
+router.delete("/:id", verifyToken, verifyAuthorization, deleteUser);
 
 module.exports = router;
