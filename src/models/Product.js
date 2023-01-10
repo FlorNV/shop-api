@@ -25,13 +25,17 @@ const ProductSchema = Schema({
     type: Number,
     required: true,
   },
-  // categories: [
-  //   {
-  //     type: Schema.Types.ObjectId,
-  //     required: true,
-  //     ref: "Category",
-  //   },
-  // ],
+  stock: {
+    type: Number,
+    required: true,
+  },
+  categories: [
+    {
+      type: Schema.Types.ObjectId,
+      required: false,
+      ref: "Category",
+    },
+  ],
 });
 
 module.exports = model("Product", ProductSchema);

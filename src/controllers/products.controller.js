@@ -1,8 +1,43 @@
 const Product = require("../models/Product");
+const Category = require("../models/Category");
 
 const getProducts = async (req, res) => {
+  const { page, category } = req.query;
+  const limit = 5;
+  const categories = category && category.split(",");
+
   try {
-    const data = await Product.find();
+    let data;
+    if (!categories) {
+      data = !page
+        ? await Product.find().populate("categories")
+        : await Product.find()
+            .skip(page * limit)
+            .limit(limit)
+            .populate("categories");
+    } else {
+      const categoriesFound = await Category.find({
+        title: { $in: categories },
+      });
+
+      if (!categoriesFound.length) {
+        return res.status(404).json({
+          status: 404,
+          message: "category not found",
+        });
+      }
+
+      data = await Product.find({
+        categories: { $in: categoriesFound },
+      }).populate("categories");
+    }
+
+    if (!data.length) {
+      return res.status(404).json({
+        status: 404,
+        message: "there is nothing here",
+      });
+    }
 
     res.status(200).json({
       status: 200,
