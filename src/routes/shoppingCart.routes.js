@@ -3,14 +3,17 @@ const { verifyToken } = require("../middlewares/verifyToken");
 const { verifyAuthorization } = require("../middlewares/verifyAuthorization");
 const {
   getShoppingCarts,
+  getShoppingCartByUser,
   getShoppingCart,
   createShoppingCart,
   updateShoppingCart,
   deleteShoppingCart,
 } = require("../controllers/shoppingCart.controller");
 
-router.get("/", verifyToken, verifyAuthorization, getShoppingCarts);
+// router.get("/", verifyToken, verifyAuthorization, getShoppingCarts);
+router.get("/", getShoppingCarts);
 router.get("/:id/:cartId", verifyToken, verifyAuthorization, getShoppingCart);
+router.get("/:id", getShoppingCartByUser);
 router.post("/:id", verifyToken, verifyAuthorization, createShoppingCart);
 router.put(
   "/:id/:cartId",

@@ -38,7 +38,23 @@ const getShoppingCart = async (req, res) => {
 const getShoppingCartByUser = async (req, res) => {
   const { id } = req.params;
   try {
-    const shoppingCart = await ShoppingCart.findOne({ user: { _id: id } });
+    const shoppingCart = await ShoppingCart.findOne({ user: { _id: id } })
+      .populate("user")
+      .populate("products.product");
+
+    let totalPrice = 0;
+    shoppingCart.products.forEach((item, index) => {
+      const { product, quantity } = item;
+      const subtotalPrice = product.price * quantity;
+      totalPrice += product.price * quantity;
+      const lineItem = {
+        unitPrice: product.price,
+        quantity,
+        subtotalPrice,
+      };
+      console.log(lineItem);
+    });
+    console.log("total: ", totalPrice);
 
     res.status(200).json({
       status: 200,
@@ -129,6 +145,7 @@ const deleteShoppingCart = async (req, res) => {
 
 module.exports = {
   getShoppingCarts,
+  getShoppingCartByUser,
   getShoppingCart,
   createShoppingCart,
   updateShoppingCart,
